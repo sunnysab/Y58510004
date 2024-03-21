@@ -22,7 +22,7 @@ private:
     int  fd = 0;
 
     /// Start address of file content loaded in memory.
-    void *start = nullptr;
+    uint8_t* start = nullptr;
     /// File size.
     size_t size = 0;
 
@@ -33,7 +33,7 @@ public:
     FileMapper(const char *filename): filename(filename) {}
     ~FileMapper() { close(); }
 
-    void *get_start() const {
+    uint8_t* get_start() const {
         return start;
     }
     size_t get_size() const {
@@ -63,7 +63,8 @@ public:
         this->size = file_stat.st_size;
 
         // Map file content to memory.
-        this->start = mmap(nullptr, 0, PROT_READ, MAP_PRIVATE, fd, 0);
+        auto addr = mmap(nullptr, 0, PROT_READ, MAP_PRIVATE, fd, 0);
+        this->start = reinterpret_cast<uint8_t *>(addr);
         if (this->start == MAP_FAILED) {
             // Close file descriptor, clean the environment.
             ::close(this->fd);

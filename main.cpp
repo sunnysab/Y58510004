@@ -1,38 +1,98 @@
-#include <cstdio>
+/// Find all occurrences of the pattern P, in a file F, based on OpenMP.
+///
+/// 2024.3.21
+/// sunnysab
+
+#include <vector>
+#include <chrono>
+#include <iostream>
+#include <algorithm>
+#include <sys/mman.h>
 #include <omp.h>
-#include <cmath>
+#include "kmp.h"
+#include "util.h"
+#include "file_mapper.h"
 
 
-/// @brief 计算 x^2 一部分的面积
-/// @param start 线程开始计算的位置
-/// @param end   线程结束计算的位置
-/// @param delta 长方形的边长
-/// @return 计算出来的面积
-double x_square_partial_integral(double start, double end, double delta) {
-    double s = 0;
+auto check_result_quickly(const uint8_t* p, size_t len, const char *pattern, const std::vector<size_t>  &result) -> bool {
+    return std::all_of(result.begin(), result.end(), [&](size_t i) {
+        return memcmp(p + i, pattern, strlen(pattern)) == 0;
+    });
+}
 
-    for(double i = start; i < end; i += delta) {
-        s += pow(i, 2) * delta;
+auto do_kmp_in_parallel(const char *file, const char *pattern) {
+    FileMapper  f(file);
+
+    try {
+        f.load();
+    } catch (Exception &e) {
+        std::cerr << e.what() << std::endl;
+        return std::vector<size_t>();
     }
-    return s;
+
+    auto [p, total_length] = std::tuple {f.get_start(), f.get_size()};
+    std::cout << "file " << file << " loaded." << std::endl;
+    std::cout << "[*] start = 0x" << std::hex << p << std::endl;
+    std::cout << "[*] total_length = " << total_length << " bytes (" << display_size(total_length) << ")" << std::endl;
+
+    auto processor_count = omp_get_num_procs();
+    auto task_size = total_length / processor_count;
+    std::vector<std::pair<const uint8_t*, size_t>> tasks(task_size);
+
+    // Generate tasks.
+    // Assume that total size is 395, we split it into 4 tasks. And the length to the pattern is 5.
+    //  |__100__|__100__|__100__|__95__|
+    // tasks are: [0, 100), [96, 200), [196, 300), [296, 395]
+    auto addr = p;
+    auto file_len = total_length;
+    auto pattern_len = strlen(pattern);
+    std::generate(tasks.begin(), tasks.end(), [&, i = 0]() mutable {
+        auto start = i == 0 ? addr: (addr + i * task_size - (pattern_len - 1));
+        auto real_size = i == task_size - 1 ? std::min(task_size, file_len - i * task_size) : task_size;
+        real_size += pattern_len;
+        i++;
+        return std::make_pair(start, real_size);
+    });
+
+    std::cout << "run algorithm in " << processor_count << " threads." << std::endl;
+
+    auto mid_result = std::vector<std::vector<size_t>>(processor_count);
+    auto start = std::chrono::high_resolution_clock::now();
+    // Assign tasks to threads.
+#pragma omp parallel
+    {
+        auto index = omp_get_thread_num();
+        auto [_start, _size] = tasks[index];
+
+        mid_result[index] = do_kmp_algorithm(reinterpret_cast<const char *>(_start), _size, pattern, pattern_len);
+    };
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "task finished, costs " << duration << " microseconds (" << display_time(duration) << ")" << std::endl;
+
+    auto result = std::vector<size_t>();
+    for (auto &r: mid_result) {
+        result.insert(result.end(), r.begin(), r.end());
+    }
+
+    std::cout << std::format("found PATTERN ({}) {} times.", pattern, result.size());
+    std::cout << "checking result..." << std::endl;
+    auto checker = check_result_quickly(p, total_length, pattern, result);
+
+    if (checker) {
+        std::cout << "result is correct." << std::endl;
+    } else {
+        std::cout << "result is incorrect." << std::endl;
+    }
 }
 
 
-
 int main() {
-    int s = 0;
-    int e = 10;
-    double sum = 0;
+    auto device_count = omp_get_num_procs();
+    std::cout << "device count = " << device_count << std::endl;
 
-    #pragma omp parallel num_threads(32) reduction(+:sum)
-    {
-        // 根据线程号进行计算区间的分配
-        // omp_get_thread_num() 返回的线程 id 从 0 开始计数 ：0, 1, 2, 3, 4, ..., 31
-        double start = (double)(e - s) / 32 * omp_get_thread_num();
-        double end   = (double)(e - s) / 32 * (omp_get_thread_num() + 1);
-        sum = x_square_partial_integral(start, end, 0.0000001);
-    }
+    do_kmp_in_parallel("test.txt", "PATTERN");
 
-    printf("sum = %lf\n", sum);
     return 0;
 }
