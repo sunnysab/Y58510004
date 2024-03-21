@@ -4,6 +4,7 @@ project(parallel)
 set(CMAKE_CXX_STANDARD 17)
 
 find_package(OpenMP)
+include_directories(".")
 
 add_executable(parallel main.cpp
         kmp.cpp
@@ -12,3 +13,7 @@ add_executable(parallel main.cpp
 if (OpenMP_CXX_FOUND)
     target_link_libraries(parallel PUBLIC OpenMP::OpenMP_CXX)
 endif ()
+
+
+add_executable(test_kmp test/test_kmp.cpp kmp.cpp)
+target_link_libraries(test_kmp PUBLIC gtest_main gtest)
