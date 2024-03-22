@@ -14,10 +14,30 @@
 #include "memory.h"
 
 
+struct Task {
+    size_t  offset;
+    size_t  size;
+
+    Task() = default;
+    Task(size_t offset, size_t size): offset(offset), size(size) {}
+};
+
+
+auto do_task(Task  &task, const uint8_t *base, const char *pattern) -> std::vector<size_t> {
+    auto [_offset, _size] = task;
+    auto result = do_kmp_algorithm(reinterpret_cast<const char *>(base + _offset), _size, pattern, strlen(pattern));
+
+    // do_kmp_algorithm only returns the offset to the pattern from the start of the block, not the base address.
+    for (auto &r: result) {
+        r += _offset;
+    }
+    return result;
+}
+
 auto search_with_openmp(const uint8_t* p, size_t total_length, const char *pattern) -> std::vector<size_t> {
     auto processor_count = omp_get_num_procs();
     auto task_size = total_length / processor_count;
-    std::vector<std::pair<const uint8_t*, size_t>> tasks(task_size);
+    std::vector<Task> tasks(task_size);
 
     // Generate tasks.
     // Assume that total size is 395, we split it into 4 tasks. And the length to the pattern is 5.
@@ -27,11 +47,11 @@ auto search_with_openmp(const uint8_t* p, size_t total_length, const char *patte
     auto file_len = total_length;
     auto pattern_len = strlen(pattern);
     std::generate(tasks.begin(), tasks.end(), [&, i = 0]() mutable {
-        auto start = i == 0 ? addr: (addr + i * task_size - (pattern_len - 1));
+        auto start = i == 0 ? 0: (i * task_size - (pattern_len - 1));
         auto real_size = i == task_size - 1 ? std::min(task_size, file_len - i * task_size) : task_size;
         real_size += pattern_len;
         i++;
-        return std::make_pair(start, real_size);
+        return Task(start, real_size);
     });
 
     std::cout << "run algorithm in " << processor_count << " threads." << std::endl;
@@ -42,9 +62,9 @@ auto search_with_openmp(const uint8_t* p, size_t total_length, const char *patte
 #pragma omp parallel
     {
         auto index = omp_get_thread_num();
-        auto [_start, _size] = tasks[index];
+        auto task = tasks[index];
 
-        mid_result[index] = do_kmp_algorithm(reinterpret_cast<const char *>(_start), _size, pattern, pattern_len);
+        mid_result[index] = do_task(task, addr, pattern);
     };
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -70,8 +90,8 @@ auto search_with_openmp(const uint8_t* p, size_t total_length, const char *patte
 
 auto search_in_memory() {
     constexpr int SIZE = 1024 * 1024 * 1024;
-    auto p = generate_test_data(1024 * 1024 * 1024, "PATTERN", 5);
-    auto result = search_with_openmp(p, 1024 * 1024 * 1024, "PATTERN");
+    auto p = generate_test_data(SIZE, "PATTERN", 5);
+    auto result = search_with_openmp(p, SIZE, "PATTERN");
     delete[] p;
 }
 
