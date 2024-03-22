@@ -14,6 +14,28 @@
 #include "file_mapper.h"
 
 
+auto check_result_quickly(const uint8_t* p, size_t len, const char *pattern, const std::vector<size_t>  &result) -> bool {
+    auto pattern_length = strlen(pattern);
+
+    return !std::any_of(result.begin(), result.end(), [&](size_t i) {
+        if (i >= len) {
+            std::cerr << "incorrect position, found a position out of range." << std::endl;
+            return true;
+        }
+
+        std::cout << "checking memory at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(p + i) << std::endl;
+        auto flag = memcmp(p + i, pattern, pattern_length) != 0;
+        if (flag) {
+            std::cerr << "incorrect position, found a position that does not match the pattern." << std::endl;
+            for (auto pc = p + i; pc < p + i + pattern_length; pc++) {
+                std::cerr << std::format("{:02x} ", *pc);
+            }
+            std::cerr << std::endl;
+        }
+        return flag;
+    });
+}
+
 /// Allocate a piece of memory and place *count* patterns in it randomly.
 auto generate_test_data(size_t size, const char *pattern, size_t count) -> const uint8_t* {
     auto pattern_len = strlen(pattern);
@@ -27,41 +49,26 @@ auto generate_test_data(size_t size, const char *pattern, size_t count) -> const
     std::mt19937 gen(rd());
     // Designing a perfect placement algorithm can be complex. Here, we will simply evenly distribute the PATTERN
     // throughout the memory region.
-    auto positions = std::vector<uint8_t*>(count);
+    auto positions = std::vector<size_t>(count);
     auto block_size = size / count;
     std::uniform_int_distribution<int> dis(0, block_size - pattern_len);
     std::generate(positions.begin(), positions.end(), [&, i = 0, step = size / count]() mutable {
-        return p + i++ * step + dis(gen);
+        return i++ * step + dis(gen);
     });
 
     for (auto pos: positions) {
-        std::cout << "place pattern at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(pos) << std::endl;
-        memcpy(pos, pattern, pattern_len);
+        auto _addr = p + pos;
+        std::cout << "place pattern at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(_addr) << std::endl;
+        memcpy(_addr, pattern, pattern_len);
     }
 
+    auto flag = check_result_quickly(p, size, pattern, positions);
+    if (!flag) {
+        throw std::runtime_error("failed to place pattern in memory.");
+    }
     return p;
 }
 
-auto check_result_quickly(const uint8_t* p, size_t len, const char *pattern, const std::vector<size_t>  &result) -> bool {
-    auto pattern_length = strlen(pattern);
-
-    return !std::any_of(result.begin(), result.end(), [&](size_t i) {
-        if (result[i] >= len) {
-            std::cout << "incorrect position, found a position out of range." << std::endl;
-            return true;
-        }
-
-        auto flag = memcmp(p + i, pattern, pattern_length) != 0;
-        if (flag) {
-            std::cout << "incorrect position, found a position that does not match the pattern." << std::endl;
-            for (auto pc = p + i; pc < p + i + pattern_length; pc++) {
-                std::cout << std::format("{:02x} ", *pc);
-            }
-            std::cout << std::endl;
-        }
-        return flag;
-    });
-}
 
 auto search_with_openmp(const uint8_t* p, size_t total_length, const char *pattern) -> std::vector<size_t> {
     auto processor_count = omp_get_num_procs();
@@ -114,11 +121,12 @@ auto search_with_openmp(const uint8_t* p, size_t total_length, const char *patte
     } else {
         std::cout << "result is incorrect." << std::endl;
     }
+    return result;
 }
 
 auto search_in_memory() {
     constexpr int SIZE = 1024 * 1024 * 1024;
-    auto p = generate_test_data(1024 * 1024 * 1024, "PATTERN", 10);
+    auto p = generate_test_data(1024 * 1024 * 1024, "PATTERN", 5);
     auto result = search_with_openmp(p, 1024 * 1024 * 1024, "PATTERN");
     delete[] p;
 }
