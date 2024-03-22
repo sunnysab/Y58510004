@@ -26,3 +26,20 @@ TEST(KMP, Test1) {
 
     ASSERT_EQ(result, expected);
 }
+
+TEST(KMP, Test2) {
+    auto buffer = new char [1 << 20];
+    auto pattern = "ABABCABAB";
+    auto pattern_length = strlen(pattern);
+
+    auto expected = std::vector<size_t> {10, 1000, 10000, 100000, 1000000};
+    for (auto offset: expected) {
+        memcpy(buffer + offset, pattern, pattern_length);
+    }
+
+    auto result = do_kmp_algorithm(buffer, 1 << 20, pattern, pattern_length);
+    delete[] buffer;
+
+    ASSERT_EQ(result.size(), expected.size());
+    ASSERT_EQ(result, expected);
+}
