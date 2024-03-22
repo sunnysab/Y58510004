@@ -7,6 +7,7 @@ find_package(OpenMP)
 include_directories(".")
 
 add_executable(parallel main.cpp
+        memory.cpp
         kmp.cpp
         util.cpp)
 
