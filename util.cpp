@@ -9,20 +9,6 @@
 #include <array>
 #include "util.h"
 
-/// Calculate execution time of a lambda function.
-/// \tparam Func
-/// \param lambda: the lambda function to be executed and measured.
-/// \return a pair of result of lambda function and execution time in microseconds.
-template<typename Func>
-auto calc_execution_time(Func lambda) -> std::pair<decltype(std::declval<Func>()()), long long> {
-    auto start = std::chrono::high_resolution_clock::now();
-    auto result = lambda();
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-
-    return {result, duration};
-}
-
 
 /// Convert time in human-readable format.
 auto display_time(long long microseconds) -> std::string {

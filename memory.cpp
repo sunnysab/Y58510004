@@ -20,7 +20,7 @@ auto check_result_quickly(const uint8_t* p, size_t len, const char *pattern, con
             return true;
         }
 
-        std::cout << "checking memory at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(p + i) << std::endl;
+        // std::cout << "checking memory at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(p + i) << std::endl;
         auto flag = memcmp(p + i, pattern, pattern_length) != 0;
         if (flag) {
             std::cerr << "incorrect position, found a position that does not match the pattern." << std::endl;
@@ -55,9 +55,12 @@ auto generate_test_data(size_t size, const char *pattern, size_t count) -> const
         return i++ * step + dis(gen);
     });
 
+    auto i = 0;
     for (auto pos: positions) {
         auto _addr = p + pos;
-        std::cout << "place pattern at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(_addr) << std::endl;
+        if (i++ < 4) {
+            std::cout << "place pattern at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(_addr) << std::endl;
+        }
         memcpy(_addr, pattern, pattern_len);
     }
 

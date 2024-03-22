@@ -34,7 +34,31 @@ auto do_task(Task  &task, const uint8_t *base, const char *pattern) -> std::vect
     return result;
 }
 
+auto search_with_single_thread(const uint8_t* p, size_t total_length, const char *pattern) -> std::vector<size_t> {
+    std::cout << "search_with_single_thread has been called." << std::endl;
+
+    auto start = std::chrono::high_resolution_clock::now();
+    auto result = do_kmp_algorithm(reinterpret_cast<const char *>(p), total_length, pattern, strlen(pattern));
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "task finished, costs " << std::dec << duration << " microseconds (" << display_time(duration) << ")" << std::endl;
+
+    std::cout << std::format("found PATTERN ({}) {} times.", pattern, result.size()) << std::endl;
+    std::cout << "checking result..." << std::endl;
+    auto checker = check_result_quickly(p, total_length, pattern, result);
+
+    if (checker) {
+        std::cout << "result is correct." << std::endl;
+    } else {
+        std::cout << "result is incorrect." << std::endl;
+    }
+    return result;
+}
+
+
 auto search_with_openmp(const uint8_t* p, size_t total_length, const char *pattern) -> std::vector<size_t> {
+    std::cout << "search_with_openmp has been called." << std::endl;
+
     auto processor_count = omp_get_num_procs();
     auto task_size = total_length / processor_count;
     std::vector<Task> tasks(task_size);
@@ -59,7 +83,7 @@ auto search_with_openmp(const uint8_t* p, size_t total_length, const char *patte
     auto mid_result = std::vector<std::vector<size_t>>(processor_count);
     auto start = std::chrono::high_resolution_clock::now();
     // Assign tasks to threads.
-#pragma omp parallel
+#pragma omp parallel num_threads(processor_count)
     {
         auto index = omp_get_thread_num();
         auto task = tasks[index];
@@ -111,13 +135,25 @@ auto search_in_file(const char *file, const char *pattern) {
     std::cout << "[*] total_length = " << total_length << " bytes (" << display_size(total_length) << ")" << std::endl;
 
     auto result = search_with_openmp(p, total_length, pattern);
+    return result;
 }
 
+auto do_test_in_memory(const int size, const char *pattern, const int count) {
+    auto p = generate_test_data(size, pattern, count);
+
+    auto result1 = search_with_openmp(p, size, pattern);
+    auto result2 = search_with_single_thread(p, size, pattern);
+
+    delete[] p;
+
+    if (result1 == result2) {
+        std::cout << "result is correct." << std::endl;
+    } else {
+        std::cout << "result is incorrect." << std::endl;
+    }
+}
 
 int main() {
-    auto device_count = omp_get_num_procs();
-    std::cout << "device count = " << device_count << std::endl;
-
-    search_in_memory();
+    do_test_in_memory(1024 * 1024 * 1024, "PATTERN", 5);
     return 0;
 }

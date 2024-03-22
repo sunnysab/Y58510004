@@ -8,9 +8,6 @@
 #include <utility>
 #include <string>
 
-/// Calculate execution time of a lambda function.
-template<typename Func>
-auto calc_execution_time(Func lambda) -> std::pair<decltype(std::declval<Func>()()), long long>;
 
 /// Convert time in human-readable format.
 auto display_time(long long microseconds) -> std::string;
