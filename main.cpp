@@ -59,7 +59,7 @@ auto search_with_single_thread(const uint8_t* p, size_t total_length, const char
 auto search_with_openmp(const uint8_t* p, size_t total_length, const char *pattern) -> std::vector<size_t> {
     std::cout << "search_with_openmp has been called." << std::endl;
 
-    auto processor_count = omp_get_num_procs();
+    auto processor_count = 4;
     auto task_size = total_length / processor_count;
     std::vector<Task> tasks(task_size);
 
