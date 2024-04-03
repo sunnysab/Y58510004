@@ -159,7 +159,7 @@ auto do_test_in_memory(const int size, const char *pattern, const int count) {
 
     auto result1 = search_with_openmp(p, size, pattern);
     auto result2 = search_with_single_thread(p, size, pattern);
-//    auto result3 = search_with_single_thread_simd(p, size, pattern);
+    auto result3 = search_with_single_thread_simd(p, size, pattern);
 
     delete[] p;
 }

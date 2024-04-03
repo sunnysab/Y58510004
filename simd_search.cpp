@@ -1,6 +1,8 @@
 //
 // Created by sunnysab on 3/30/24.
 //
+// Reference:
+// http://0x80.pl/articles/simd-strfind.html
 
 #include <cstdint>
 #include <cassert>
@@ -38,7 +40,7 @@ auto simd_search(const char* text, const size_t text_len, const char* pattern, c
     std::vector<size_t> result;
 
     // 向寄存器中填充 needle 的第一个字节
-    const __m256i first = _mm256_set1_epi8(text[0]);
+    const __m256i first = _mm256_set1_epi8(pattern[0]);
     // 向寄存器中填充 needle 的最后一个字节
     const __m256i last  = _mm256_set1_epi8(pattern[pattern_len - 1]);
 
