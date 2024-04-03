@@ -51,7 +51,7 @@ auto generate_test_data(size_t size, const char *pattern, size_t count) -> const
     auto positions = std::vector<size_t>(count);
     auto block_size = size / count;
     std::uniform_int_distribution<int> dis(0, block_size - pattern_len);
-    std::generate(positions.begin(), positions.end(), [&, i = 0, step = size / count]() mutable {
+    std::generate(positions.begin(), positions.end(), [&, i = 0, step = block_size]() mutable {
         return i++ * step + dis(gen);
     });
 
