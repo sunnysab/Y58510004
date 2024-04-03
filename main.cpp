@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <omp.h>
 #include "kmp.h"
+#include "simd_search.h"
 #include "util.h"
 #include "file_mapper.h"
 #include "memory.h"
@@ -25,9 +26,9 @@ struct Task {
 
 auto do_task(Task  &task, const uint8_t *base, const char *pattern) -> std::vector<size_t> {
     auto [_offset, _size] = task;
-    auto result = do_kmp_algorithm(reinterpret_cast<const char *>(base + _offset), _size, pattern, strlen(pattern));
+    auto result = kmp_search(reinterpret_cast<const char *>(base + _offset), _size, pattern, strlen(pattern));
 
-    // do_kmp_algorithm only returns the offset to the pattern from the start of the block, not the base address.
+    // kmp_search only returns the offset to the pattern from the start of the block, not the base address.
     for (auto &r: result) {
         r += _offset;
     }
@@ -38,7 +39,28 @@ auto search_with_single_thread(const uint8_t* p, size_t total_length, const char
     std::cout << "search_with_single_thread has been called." << std::endl;
 
     auto start = std::chrono::high_resolution_clock::now();
-    auto result = do_kmp_algorithm(reinterpret_cast<const char *>(p), total_length, pattern, strlen(pattern));
+    auto result = kmp_search(reinterpret_cast<const char *>(p), total_length, pattern, strlen(pattern));
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "task finished, costs " << std::dec << duration << " microseconds (" << display_time(duration) << ")" << std::endl;
+
+    std::cout << std::format("found PATTERN ({}) {} times.", pattern, result.size()) << std::endl;
+    std::cout << "checking result..." << std::endl;
+    auto checker = check_result_quickly(p, total_length, pattern, result);
+
+    if (checker) {
+        std::cout << "result is correct." << std::endl;
+    } else {
+        std::cout << "result is incorrect." << std::endl;
+    }
+    return result;
+}
+
+auto search_with_single_thread_simd(const uint8_t* p, size_t total_length, const char *pattern) -> std::vector<size_t> {
+    std::cout << "search_with_single_thread_simd has been called." << std::endl;
+
+    auto start = std::chrono::high_resolution_clock::now();
+    auto result = simd_search(reinterpret_cast<const char *>(p), total_length, pattern, strlen(pattern));
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "task finished, costs " << std::dec << duration << " microseconds (" << display_time(duration) << ")" << std::endl;
@@ -61,7 +83,7 @@ auto search_with_openmp(const uint8_t* p, size_t total_length, const char *patte
 
     auto processor_count = 4;
     auto task_size = total_length / processor_count;
-    std::vector<Task> tasks(task_size);
+    std::vector<Task> tasks(processor_count);
 
     // Generate tasks.
     // Assume that total size is 395, we split it into 4 tasks. And the length to the pattern is 5.
@@ -112,12 +134,6 @@ auto search_with_openmp(const uint8_t* p, size_t total_length, const char *patte
     return result;
 }
 
-auto search_in_memory() {
-    constexpr int SIZE = 1024 * 1024 * 1024;
-    auto p = generate_test_data(SIZE, "PATTERN", 5);
-    auto result = search_with_openmp(p, SIZE, "PATTERN");
-    delete[] p;
-}
 
 auto search_in_file(const char *file, const char *pattern) {
     FileMapper  f(file);
@@ -143,14 +159,9 @@ auto do_test_in_memory(const int size, const char *pattern, const int count) {
 
     auto result1 = search_with_openmp(p, size, pattern);
     auto result2 = search_with_single_thread(p, size, pattern);
+//    auto result3 = search_with_single_thread_simd(p, size, pattern);
 
     delete[] p;
-
-    if (result1 == result2) {
-        std::cout << "result is correct." << std::endl;
-    } else {
-        std::cout << "result is incorrect." << std::endl;
-    }
 }
 
 int main() {

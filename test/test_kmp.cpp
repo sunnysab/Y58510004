@@ -11,7 +11,7 @@ TEST(KMP, TestEmptyString) {
     const char *text = "";
     const char *pattern = "PATTERN";
 
-    auto result = do_kmp_algorithm(text, strlen(text), pattern, strlen(pattern));
+    auto result = kmp_search(text, strlen(text), pattern, strlen(pattern));
     std::vector<size_t> expected = {};
 
     ASSERT_EQ(result, expected);
@@ -21,7 +21,7 @@ TEST(KMP, Test1) {
     const char *text = "ABABDABACDABABCABAB";
     const char *pattern = "ABABCABAB";
 
-    auto result = do_kmp_algorithm(text, strlen(text), pattern, strlen(pattern));
+    auto result = kmp_search(text, strlen(text), pattern, strlen(pattern));
     std::vector<size_t> expected = {10};
 
     ASSERT_EQ(result, expected);
@@ -37,7 +37,7 @@ TEST(KMP, Test2) {
         memcpy(buffer + offset, pattern, pattern_length);
     }
 
-    auto result = do_kmp_algorithm(buffer, 1 << 20, pattern, pattern_length);
+    auto result = kmp_search(buffer, 1 << 20, pattern, pattern_length);
     delete[] buffer;
 
     ASSERT_EQ(result.size(), expected.size());
