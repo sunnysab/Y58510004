@@ -44,15 +44,6 @@ auto search_with_single_thread(const uint8_t* p, size_t total_length, const char
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "task finished, costs " << std::dec << duration << " microseconds (" << display_time(duration) << ")" << std::endl;
 
-    std::cout << std::format("found PATTERN ({}) {} times.", pattern, result.size()) << std::endl;
-    std::cout << "checking result..." << std::endl;
-    auto checker = check_result_quickly(p, total_length, pattern, result);
-
-    if (checker) {
-        std::cout << "result is correct." << std::endl;
-    } else {
-        std::cout << "result is incorrect." << std::endl;
-    }
     return result;
 }
 
@@ -65,15 +56,6 @@ auto search_with_single_thread_simd(const uint8_t* p, size_t total_length, const
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "task finished, costs " << std::dec << duration << " microseconds (" << display_time(duration) << ")" << std::endl;
 
-    std::cout << std::format("found PATTERN ({}) {} times.", pattern, result.size()) << std::endl;
-    std::cout << "checking result..." << std::endl;
-    auto checker = check_result_quickly(p, total_length, pattern, result);
-
-    if (checker) {
-        std::cout << "result is correct." << std::endl;
-    } else {
-        std::cout << "result is incorrect." << std::endl;
-    }
     return result;
 }
 
@@ -122,15 +104,6 @@ auto search_with_openmp(const uint8_t* p, size_t total_length, const char *patte
         result.insert(result.end(), r.begin(), r.end());
     }
 
-    std::cout << std::format("found PATTERN ({}) {} times.", pattern, result.size()) << std::endl;
-    std::cout << "checking result..." << std::endl;
-    auto checker = check_result_quickly(p, total_length, pattern, result);
-
-    if (checker) {
-        std::cout << "result is correct." << std::endl;
-    } else {
-        std::cout << "result is incorrect." << std::endl;
-    }
     return result;
 }
 
@@ -154,12 +127,28 @@ auto search_in_file(const char *file, const char *pattern) {
     return result;
 }
 
+auto check_print_result(const uint8_t *text, size_t text_len, const char *pattern, const std::vector<size_t> &result) {
+    std::cout << std::format("found PATTERN ({}) {} time(s).", pattern, result.size()) << std::endl;
+    auto checker = check_result_quickly(text, text_len, pattern, result);
+
+    if (checker) {
+        std::cout << "result is correct." << std::endl;
+    } else {
+        std::cout << "result is incorrect." << std::endl;
+    }
+}
+
 auto do_test_in_memory(const int size, const char *pattern, const int count) {
     auto p = generate_test_data(size, pattern, count);
 
     auto result1 = search_with_openmp(p, size, pattern);
+    check_print_result(p, size, pattern, result1);
+
     auto result2 = search_with_single_thread(p, size, pattern);
+    check_print_result(p, size, pattern, result2);
+
     auto result3 = search_with_single_thread_simd(p, size, pattern);
+    check_print_result(p, size, pattern, result3);
 
     delete[] p;
 }
