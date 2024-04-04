@@ -8,6 +8,7 @@
 #include <iostream>
 #include <algorithm>
 #include <format>
+#include <immintrin.h>
 #include "memory.h"
 
 
@@ -33,17 +34,29 @@ auto check_result_quickly(const uint8_t* p, size_t len, const char *pattern, con
     });
 }
 
+/// Clear memory with SIMD.
+auto memclr(uint8_t *p, const size_t size) -> void {
+
+    memset(p, 1, size);
+//    size_t i = 0;
+//    // 使用 SIMD 指令只要 size 大于等于 32 字节
+//    for (; i + 32 < size; i += 32) {
+//        _mm256_store_si256(reinterpret_cast<__m256i*>(p + i), _mm256_setzero_si256());
+//    }
+//
+//    // 清除剩余的内存
+//    for (; i < size; i++) {
+//        p[i] = 0;
+//    }
+}
+
 
 
 /// Allocate a piece of memory and place *count* patterns in it randomly.
-auto generate_test_data(size_t size, const char *pattern, size_t count) -> const uint8_t* {
+auto generate_test_data(uint8_t* base, size_t size, const char *pattern, size_t count) -> void {
+    memclr(base, size);
+
     auto pattern_len = strlen(pattern);
-    if (size < pattern_len * count) {
-        throw std::runtime_error("size is too small.");
-    }
-
-    auto p = new uint8_t[size];
-
     std::random_device rd;
     std::mt19937 gen(rd());
     // Designing a perfect placement algorithm can be complex. Here, we will simply evenly distribute the PATTERN
@@ -57,16 +70,15 @@ auto generate_test_data(size_t size, const char *pattern, size_t count) -> const
 
     auto i = 0;
     for (auto pos: positions) {
-        auto _addr = p + pos;
+        auto _addr = base + pos;
         if (i++ < 4) {
             std::cout << "place pattern at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(_addr) << std::endl;
         }
         memcpy(_addr, pattern, pattern_len);
     }
 
-    auto flag = check_result_quickly(p, size, pattern, positions);
+    auto flag = check_result_quickly(base, size, pattern, positions);
     if (!flag) {
         throw std::runtime_error("failed to place pattern in memory.");
     }
-    return p;
 }
