@@ -41,7 +41,7 @@ $ tree .
 
    ```cpp
   auto generate_test_data(size_t size, const char *pattern, size_t count) -> const uint8_t*;
-   ```
+  ```
   函数申请一段指定长度的内存。由于我们希望尽量均匀地在存储空间中生成测试数据，不妨将可用内存分为 `count` 个区块，在每个区块中放置一个模式串，也能起到使其均匀分布的作用。
   注意，函数中使用了 `new` 申请内存区域，需要配合 `delete` 释放内存。
 
@@ -52,7 +52,7 @@ $ tree .
   auto search_with_single_thread(const uint8_t* p, size_t total_length, const char *pattern) -> std::vector<size_t>;
   auto search_with_single_thread_simd(const uint8_t* p, size_t total_length, const char *pattern) -> std::vector<size_t>;
   auto search_with_openmp(const uint8_t* p, size_t total_length, const char *pattern) -> std::vector<size_t>;
-   ```
+  ```
 
    在实现基于 OpenMP 的方法时需要注意，`kmp_search` 函数所返回的子串偏移量是相对于该任务的起始位置的，因此我们需要将结果换算成相对于整个查找区域的偏移量。
    此外，对于并行的任务，我们在启动线程前将查找工作分解为多个任务（Task），并计算其起始偏移量和任务长度。对于非第一个任务，它们的起始偏移量要向前一点点（`pattern_len - 1`），以保证搜索过程中不会有遗漏。任务划分的代码如下：
@@ -71,7 +71,7 @@ $ tree .
       i++;
       return Task(start, real_size);
   });
-  ```
+   ```
 
 - **检查测试结果**
 
@@ -99,22 +99,48 @@ $ cmake --build . --config Release
 
 单线程测试：
 
-| 大小  | 串行    | SIMD | 加速比 |
-| ----- | ------- | ---- | ---- |
-| 256MB | 413ms   | 9ms  | |
-| 512MB | 829ms   | 19ms | |
-| 1GB   | 1s673ms | 39ms | |
+| 大小 | 串行    | SIMD  | 加速比 |
+| ---- | ------- | ----- | ------ |
+| 128M | 158ms   | 4ms   |        |
+| 256M | 413ms   | 9ms   | 4589%  |
+| 512M | 829ms   | 19ms  | 4363%  |
+| 1G   | 1s673ms | 39ms  | 4289%  |
+| 2G   | 2448ms  | 68ms  |        |
+| 4G   | 2448ms  | 138ms |        |
+| 8G   | 2456ms  | 280ms |        |
 
 多线程测试：
 
-| 大小 | 多线程 | 多线程+SIMD | Cores |
-| ---- | ------ | ----------- | ----- |
-| 256M | 210ms  |             | 2     |
-| 512M | 421ms  |             | 2     |
-| 1G   | 878ms  |             | 2     |
-| 256M | 119ms  |             | 4     |
-| 512M | 245ms  |             | 4     |
-| 1G   | 689ms  |             | 4     |
+| 大小 | 多线程       | 多线程 + SIMD | Cores |
+| ---- | ------------ | ------------- | ----- |
+| 128M | 46ms         | 1ms           | 2     |
+| 256M | 210ms (196%) | 5ms (8260%)   | 2     |
+| 512M | 421ms (196%) | 10ms (8290%)  | 2     |
+| 1G   | 878ms (190%) | 19ms (8805%)  | 2     |
+| 2G   | 749ms        | 25ms          | 2     |
+| 4G   | 1485ms       | 50ms          | 2     |
+| 8G   | 2961ms       | 94ms          | 2     |
+| 128M | 46ms         | 1ms           | 4     |
+| 256M | 119ms (347%) | 3ms (13767%)  | 4     |
+| 512M | 245ms (338%) | 5ms (16580%)  | 4     |
+| 1G   | 515ms (324%) | 10ms (16730%) | 4     |
+| 2G   | 745ms        | 26ms          | 4     |
+| 4G   | 1482ms       | 49ms          | 4     |
+| 8G   | 2954ms       | 94ms          | 4     |
+| 128M | 47ms         | 1ms           | 8     |
+| 256M | 93ms         | 3ms           | 8     |
+| 512M | 186ms        | 6ms           | 8     |
+| 1G   | 375ms        | 11ms          | 8     |
+| 2G   | 745ms        | 25ms          | 8     |
+| 4G   | 1482ms       | 48ms          | 8     |
+| 8G   | 2952ms       | 92ms          | 8     |
+| 128M | 46ms         | 1ms           | 16    |
+| 256M | 95ms         | 3ms           | 16    |
+| 512M | 188ms        | 6ms           | 16    |
+| 1G   | 375ms        | 11ms          | 16    |
+| 2G   | 744ms        | 24ms          | 16    |
+| 4G   | 1485ms       | 49ms          | 16    |
+| 8G   | 2948ms       | 94ms          | 16    |
 
 
 
