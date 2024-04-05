@@ -74,7 +74,7 @@ auto generate_test_data(uint8_t* base, size_t size, const char *pattern, size_t 
         if (i++ < 4) {
             std::cout << "place pattern at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(_addr) << std::endl;
         }
-        memcpy(_addr, pattern, pattern_len);
+        strcpy(reinterpret_cast<char *>(_addr), pattern);
     }
 
     auto flag = check_result_quickly(base, size, pattern, positions);

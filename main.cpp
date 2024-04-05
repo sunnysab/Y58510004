@@ -235,15 +235,16 @@ int main() {
 
         std::cout << "memory size: " << display_size(size)  << ", serial & SIMD costs: ";
         for (auto duration: durations) {
-            std::cout << display_time(duration) << ", ";
+            std::cout << display_time(duration) << " ";
         }
-        std::cout << ", parallel costs:";
+        std::cout << std::endl;
 
         // 线程数
         for (auto cores = 2; cores <= 4; cores *= 2) {
             auto durations_with_threads = do_parallel_test_in_memory(p, size, PATTERN, cores);
+            std::cout << "c" << cores << ": ";
             for (auto duration: durations) {
-                std::cout << "c" << cores << ": " << display_time(duration) << ", ";
+                std::cout << display_time(duration) << ", ";
             }
             std::cout << std::endl;
         }
