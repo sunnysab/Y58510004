@@ -36,18 +36,16 @@ auto check_result_quickly(const uint8_t* p, size_t len, const char *pattern, con
 
 /// Clear memory with SIMD.
 auto memclr(uint8_t *p, const size_t size) -> void {
+    size_t i = 0;
+    // 使用 SIMD 指令只要 size 大于等于 32 字节
+    for (; i + 32 < size; i += 32) {
+        _mm256_storeu_si256(reinterpret_cast<__m256i*>(p + i), _mm256_setzero_si256());
+    }
 
-    memset(p, 1, size);
-//    size_t i = 0;
-//    // 使用 SIMD 指令只要 size 大于等于 32 字节
-//    for (; i + 32 < size; i += 32) {
-//        _mm256_store_si256(reinterpret_cast<__m256i*>(p + i), _mm256_setzero_si256());
-//    }
-//
-//    // 清除剩余的内存
-//    for (; i < size; i++) {
-//        p[i] = 0;
-//    }
+    // 清除剩余的内存
+    for (; i < size; i++) {
+        p[i] = 0;
+    }
 }
 
 
