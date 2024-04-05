@@ -200,7 +200,6 @@ auto do_serial_test_in_memory(const uint8_t* p, const size_t size, const char *p
     auto [result2, duration2] = search_with_single_thread_simd(p, size, pattern);
     check_print_result(p, size, pattern, result2);
 
-    delete[] p;
     return {duration1, duration2};
 }
 
@@ -212,7 +211,6 @@ auto do_parallel_test_in_memory(const uint8_t* p, const size_t size, const char 
     auto [result4, duration4] = search_with_openmp_simd(p, size, pattern, threads);
     check_print_result(p, size, pattern, result4);
 
-    delete[] p;
     return {duration3, duration4};
 }
 
