@@ -218,7 +218,7 @@ auto do_parallel_test_in_memory(const uint8_t* p, const size_t size, const char 
 
 int main() {
     const auto MIN_MEMORY_USE = 128 * 1024 * 1024L;
-    const auto MAX_MEMORY_USE = 1 * 1024 * 1024 * 1024L;
+    const auto MAX_MEMORY_USE = 8 * 1024 * 1024 * 1024L;
     const auto PATTERN = "PATTERN";
 
     // 一次分配，多次使用，提高测试性能.
@@ -241,7 +241,7 @@ int main() {
         for (auto cores = 2; cores <= 4; cores *= 2) {
             auto durations_with_threads = do_parallel_test_in_memory(p, size, PATTERN, cores);
             std::cout << "c" << cores << ": ";
-            for (auto duration: durations) {
+            for (auto duration: durations_with_threads) {
                 std::cout << display_time(duration) << ", ";
             }
             std::cout << std::endl;
