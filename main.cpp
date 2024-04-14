@@ -27,13 +27,10 @@ struct Task {
 auto search_with_single_thread(const uint8_t* p, size_t total_length, const char *pattern)
     -> std::pair<std::vector<size_t>, long> {
 
-    std::cout << "search_with_single_thread has been called." << std::endl;
-
     auto start = std::chrono::high_resolution_clock::now();
     auto result = kmp_search(reinterpret_cast<const char *>(p), total_length, pattern, strlen(pattern));
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "task finished, costs " << std::dec << duration << " microseconds (" << display_time(duration) << ")" << std::endl;
 
     return {result, duration};
 }
@@ -41,13 +38,10 @@ auto search_with_single_thread(const uint8_t* p, size_t total_length, const char
 auto search_with_single_thread_simd(const uint8_t* p, size_t total_length, const char *pattern)
     -> std::pair<std::vector<size_t>, long> {
 
-    std::cout << "search_with_single_thread_simd has been called." << std::endl;
-
     auto start = std::chrono::high_resolution_clock::now();
     auto result = simd_search(reinterpret_cast<const char *>(p), total_length, pattern, strlen(pattern));
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "task finished, costs " << std::dec << duration << " microseconds (" << display_time(duration) << ")" << std::endl;
 
     return {result, duration};
 }
@@ -55,8 +49,6 @@ auto search_with_single_thread_simd(const uint8_t* p, size_t total_length, const
 
 auto search_with_openmp(const uint8_t* p, size_t total_length, const char *pattern, const unsigned int threads)
     -> std::pair<std::vector<size_t>, long> {
-
-    std::cout << "search_with_openmp has been called." << std::endl;
 
     auto task_size = total_length / threads;
     std::vector<Task> tasks(threads);
@@ -75,8 +67,6 @@ auto search_with_openmp(const uint8_t* p, size_t total_length, const char *patte
         i++;
         return Task(start, real_size);
     });
-
-    std::cout << "run algorithm in " << threads << " threads." << std::endl;
 
     auto mid_result = std::vector<std::vector<size_t>>(threads);
     auto start = std::chrono::high_resolution_clock::now();
@@ -98,7 +88,6 @@ auto search_with_openmp(const uint8_t* p, size_t total_length, const char *patte
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "task finished, costs " << std::dec << duration << " microseconds (" << display_time(duration) << ")" << std::endl;
 
     auto result = std::vector<size_t>();
     for (auto &r: mid_result) {
@@ -110,8 +99,6 @@ auto search_with_openmp(const uint8_t* p, size_t total_length, const char *patte
 
 auto search_with_openmp_simd(const uint8_t* p, size_t total_length, const char *pattern, const unsigned int threads)
     -> std::pair<std::vector<size_t>, long> {
-
-    std::cout << "search_with_openmp_simd has been called." << std::endl;
 
     auto task_size = total_length / threads;
     std::vector<Task> tasks(threads);
@@ -130,8 +117,6 @@ auto search_with_openmp_simd(const uint8_t* p, size_t total_length, const char *
         i++;
         return Task(start, real_size);
     });
-
-    std::cout << "run algorithm in " << threads << " threads." << std::endl;
 
     auto mid_result = std::vector<std::vector<size_t>>(threads);
     auto start = std::chrono::high_resolution_clock::now();
@@ -153,7 +138,6 @@ auto search_with_openmp_simd(const uint8_t* p, size_t total_length, const char *
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "task finished, costs " << std::dec << duration << " microseconds (" << display_time(duration) << ")" << std::endl;
 
     auto result = std::vector<size_t>();
     for (auto &r: mid_result) {
@@ -164,7 +148,6 @@ auto search_with_openmp_simd(const uint8_t* p, size_t total_length, const char *
 }
 
 auto check_print_result(const uint8_t *text, size_t text_len, const char *pattern, const std::vector<size_t> &result, const size_t expected_result_count) {
-//    std::cout << std::format("found PATTERN ({}) {} time(s).", pattern, result.size()) << std::endl;
     auto checker = check_result_quickly(text, text_len, pattern, result);
 
     if (result.size() != expected_result_count) {
