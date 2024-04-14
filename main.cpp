@@ -125,7 +125,7 @@ auto search_with_openmp_simd(const uint8_t* p, size_t total_length, const char *
     auto pattern_len = strlen(pattern);
     std::generate(tasks.begin(), tasks.end(), [&, i = 0]() mutable {
         auto start = i == 0 ? 0: (i * task_size - (pattern_len - 1));
-        auto real_size = i == task_size - 1 ? std::min(task_size, file_len - i * task_size) : task_size;
+        auto real_size = i == threads - 1 ? std::min(task_size, file_len - i * task_size) : task_size;
         real_size += pattern_len;
         i++;
         return Task(start, real_size);
