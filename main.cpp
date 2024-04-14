@@ -1,6 +1,6 @@
 /// Find all occurrences of the pattern P, in a file F, based on OpenMP.
 ///
-/// 2024.3.21
+/// 2024.4.14
 /// sunnysab
 
 #include <vector>
@@ -163,53 +163,48 @@ auto search_with_openmp_simd(const uint8_t* p, size_t total_length, const char *
     return {result, duration};
 }
 
-auto search_in_file(const char *file, const char *pattern) {
-    FileMapper  f(file);
-
-    try {
-        f.load();
-    } catch (Exception &e) {
-        std::cerr << e.what() << std::endl;
-        return std::vector<size_t>();
-    }
-
-    auto [p, total_length] = std::tuple {f.get_start(), f.get_size()};
-    std::cout << "file " << file << " loaded." << std::endl;
-    std::cout << "[*] start = 0x" << std::hex << p << std::endl;
-    std::cout << "[*] total_length = " << total_length << " bytes (" << display_size(total_length) << ")" << std::endl;
-
-    auto [result, _duration] = search_with_openmp(p, total_length, pattern, 4);
-    return result;
-}
-
-auto check_print_result(const uint8_t *text, size_t text_len, const char *pattern, const std::vector<size_t> &result) {
-    std::cout << std::format("found PATTERN ({}) {} time(s).", pattern, result.size()) << std::endl;
+auto check_print_result(const uint8_t *text, size_t text_len, const char *pattern, const std::vector<size_t> &result, const size_t expected_result_count) {
+//    std::cout << std::format("found PATTERN ({}) {} time(s).", pattern, result.size()) << std::endl;
     auto checker = check_result_quickly(text, text_len, pattern, result);
 
+    if (result.size() != expected_result_count) {
+        std::cerr << "incorrect count of PATTERN:" << result.size() << std::endl;
+        return false;
+    }
     if (!checker) {
         std::cerr << "result is incorrect." << std::endl;
+        return false;
     }
+    return true;
 }
 
-auto do_serial_test_in_memory(const uint8_t* p, const size_t size, const char *pattern)
+auto do_serial_test_in_memory(const uint8_t* p, const size_t size, const char *pattern, const size_t expected_result_count)
 -> std::vector<long> {
 
     auto [result1, duration1] = search_with_single_thread(p, size, pattern);
-    check_print_result(p, size, pattern, result1);
+    if (!check_print_result(p, size, pattern, result1, expected_result_count)) {
+        std::cerr << "serial test failed." << std::endl;
+    }
 
     auto [result2, duration2] = search_with_single_thread_simd(p, size, pattern);
-    check_print_result(p, size, pattern, result2);
+    if (!check_print_result(p, size, pattern, result2, expected_result_count)) {
+        std::cerr << "serial SIMD test failed." << std::endl;
+    }
 
     return {duration1, duration2};
 }
 
-auto do_parallel_test_in_memory(const uint8_t* p, const size_t size, const char *pattern, const unsigned int threads = 4)
+auto do_parallel_test_in_memory(const uint8_t* p, const size_t size, const char *pattern, const size_t expected_result_count, const unsigned int threads = 4)
     -> std::vector<long> {
     auto [result3, duration3] = search_with_openmp(p, size, pattern, threads);
-    check_print_result(p, size, pattern, result3);
+    if (!check_print_result(p, size, pattern, result3, expected_result_count)) {
+        std::cerr << "parallel test failed." << std::endl;
+    }
 
     auto [result4, duration4] = search_with_openmp_simd(p, size, pattern, threads);
-    check_print_result(p, size, pattern, result4);
+    if (!check_print_result(p, size, pattern, result4, expected_result_count)) {
+        std::cerr << "parallel SIMD test failed." << std::endl;
+    }
 
     return {duration3, duration4};
 }
@@ -220,6 +215,7 @@ int main() {
     const auto MIN_MEMORY_USE = 128 * 1024 * 1024L;
     const auto MAX_MEMORY_USE = 8 * 1024 * 1024 * 1024L;
     const auto PATTERN = "PATTERN";
+    const auto PATTERN_COUNT = 5;
 
     // 一次分配，多次使用，提高测试性能.
     auto p = new uint8_t[MAX_MEMORY_USE];
@@ -228,8 +224,8 @@ int main() {
     // 内存大小
     for (auto size = MIN_MEMORY_USE; size <= MAX_MEMORY_USE; size *= 2) {
 
-        generate_test_data(p, size, PATTERN, 5);
-        auto durations = do_serial_test_in_memory(p, size, PATTERN);
+        generate_test_data(p, size, PATTERN, PATTERN_COUNT);
+        auto durations = do_serial_test_in_memory(p, size, PATTERN, PATTERN_COUNT);
 
         std::cout << "memory size: " << display_size(size)  << ", serial & SIMD costs: ";
         for (auto duration: durations) {
@@ -238,8 +234,8 @@ int main() {
         std::cout << std::endl;
 
         // 线程数
-        for (auto cores = 2; cores <= 4; cores *= 2) {
-            auto durations_with_threads = do_parallel_test_in_memory(p, size, PATTERN, cores);
+        for (auto cores = 2; cores <= 16; cores *= 2) {
+            auto durations_with_threads = do_parallel_test_in_memory(p, size, PATTERN, PATTERN_COUNT, cores);
             std::cout << "c" << cores << ": ";
             for (auto duration: durations_with_threads) {
                 std::cout << display_time(duration) << ", ";
