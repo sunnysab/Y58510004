@@ -26,11 +26,11 @@ TEST(SIMD, Test1) {
 }
 
 TEST(SIMD, Test2) {
-    auto buffer = new char [1 << 20];
+    auto buffer = new char[1 << 20];
     auto pattern = "ABABCABAB";
     auto pattern_length = strlen(pattern);
 
-    auto expected = std::vector<size_t> {10, 1000, 10000, 100000, 1000000};
+    auto expected = std::vector<size_t>{10, 1000, 10000, 100000, 1000000};
     for (auto offset: expected) {
         memcpy(buffer + offset, pattern, pattern_length);
     }

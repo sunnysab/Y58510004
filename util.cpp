@@ -43,7 +43,6 @@ auto display_time(long long microseconds) -> std::string {
 }
 
 
-
 /// Convert file size in human-readable format.
 auto display_size(long long bytes) -> std::string {
     static const std::array<std::string, 7> suffixes = {"B", "KB", "MB", "GB", "TB", "PB", "EB"};

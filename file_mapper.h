@@ -19,10 +19,10 @@
 class FileMapper {
 private:
     /// File descriptor.
-    int  fd = 0;
+    int fd = 0;
 
     /// Start address of file content loaded in memory.
-    uint8_t* start = nullptr;
+    uint8_t *start = nullptr;
     /// File size.
     size_t size = 0;
 
@@ -30,12 +30,14 @@ private:
     const char *filename = nullptr;
 
 public:
-    FileMapper(const char *filename): filename(filename) {}
+    FileMapper(const char *filename) : filename(filename) {}
+
     ~FileMapper() { close(); }
 
-    uint8_t* get_start() const {
+    uint8_t *get_start() const {
         return start;
     }
+
     size_t get_size() const {
         return size;
     }
@@ -50,7 +52,7 @@ public:
         }
 
         // Get file size.
-        struct stat file_stat {};
+        struct stat file_stat{};
         if (fstat(this->fd, &file_stat) == -1) {
             // Close file descriptor, clean the environment.
             ::close(this->fd);

@@ -13,18 +13,18 @@ private:
     std::string message;
 
 public:
-    explicit Exception(const char* cstr)
+    explicit Exception(const char *cstr)
             : message(cstr) {}
 
-    explicit Exception(const std::string& str)
+    explicit Exception(const std::string &str)
             : message(str) {}
 
-    Exception(const Exception& other)
+    Exception(const Exception &other)
             : message(other.message) {}
 
     virtual ~Exception() {}
 
-    virtual const char* what() const throw() {
+    virtual const char *what() const throw() {
         return message.c_str();
     }
 };

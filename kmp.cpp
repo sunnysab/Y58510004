@@ -7,7 +7,7 @@
 #include "kmp.h"
 
 
-static void build_prefix_suffix_array(const char* pattern, size_t pattern_len, size_t* pps) {
+static void build_prefix_suffix_array(const char *pattern, size_t pattern_len, size_t *pps) {
     size_t length = 0;
     pps[0] = 0;
     size_t i = 1;
@@ -16,8 +16,7 @@ static void build_prefix_suffix_array(const char* pattern, size_t pattern_len, s
             length++;
             pps[i] = length;
             i++;
-        }
-        else {
+        } else {
             if (length != 0)
                 length = pps[length - 1];
             else {
@@ -35,7 +34,8 @@ static void build_prefix_suffix_array(const char* pattern, size_t pattern_len, s
 // @param pattern 指向模式串字符串的指针。
 // @param pattern_len 模式串的长度。
 // @return 一个包含匹配索引位置的向量（vector）。
-auto kmp_search(const char* text, const size_t text_len, const char* pattern, const size_t pattern_len) -> std::vector<size_t> {
+auto kmp_search(const char *text, const size_t text_len, const char *pattern,
+                const size_t pattern_len) -> std::vector<size_t> {
     // 部分匹配表（Partial Match Table），也称为前缀后缀表（Prefix-Suffix Table）。
     size_t pps[pattern_len];
     // 构建前缀后缀数组，为匹配过程提供跳转信息以避免冗余检查。
@@ -59,7 +59,7 @@ auto kmp_search(const char* text, const size_t text_len, const char* pattern, co
             // 根据部分匹配表调整模式串指针j。
             j = pps[j - 1];
         }
-        // 如果字符不匹配，并且i没有到达文本尾部。
+            // 如果字符不匹配，并且i没有到达文本尾部。
         else if (i < text_len && pattern[j] != text[i]) {
             // j不为0时根据部分匹配表回溯。
             // 不是从模式串的开始位置重新匹配，j回到有最大前缀后缀匹配长度的位置。
