@@ -7,8 +7,8 @@
 #include "kmp.h"
 
 
-static void build_prefix_suffix_array(const char* pattern, size_t pattern_len, int* pps) {
-    int length = 0;
+static void build_prefix_suffix_array(const char* pattern, size_t pattern_len, size_t* pps) {
+    size_t length = 0;
     pps[0] = 0;
     size_t i = 1;
     while (i < pattern_len) {
@@ -37,15 +37,15 @@ static void build_prefix_suffix_array(const char* pattern, size_t pattern_len, i
 // @return 一个包含匹配索引位置的向量（vector）。
 auto kmp_search(const char* text, const size_t text_len, const char* pattern, const size_t pattern_len) -> std::vector<size_t> {
     // 部分匹配表（Partial Match Table），也称为前缀后缀表（Prefix-Suffix Table）。
-    int pps[pattern_len];
+    size_t pps[pattern_len];
     // 构建前缀后缀数组，为匹配过程提供跳转信息以避免冗余检查。
     build_prefix_suffix_array(pattern, pattern_len, pps);
 
     // 用于存放匹配结果的索引位置。
     std::vector<size_t> result;
     // i用于遍历文本，j用于遍历模式串。
-    int i = 0;
-    int j = 0;
+    size_t i = 0;
+    size_t j = 0;
     // 遍历整个文本字符串。
     while (i < text_len) {
         // 如果当前字符匹配成功，则模式串和文本都向后移动一个字符。
