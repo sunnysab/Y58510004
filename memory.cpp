@@ -49,10 +49,21 @@ auto memclr(uint8_t *p, const size_t size) -> void {
 }
 
 
+/// Clear memory with random data.
+auto memrnd(uint8_t *p, const size_t size) -> void {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dis(1, 255);
+
+    for (size_t i = 0; i < size; i++) {
+        p[i] = dis(gen);
+    }
+}
 
 /// Allocate a piece of memory and place *count* patterns in it randomly.
 auto generate_test_data(uint8_t* base, size_t size, const char *pattern, size_t count) -> void {
-    memclr(base, size);
+    memrnd(base, size);
+//    memclr(base, size);
 
     auto pattern_len = strlen(pattern);
     std::random_device rd;
@@ -70,7 +81,7 @@ auto generate_test_data(uint8_t* base, size_t size, const char *pattern, size_t 
     for (auto pos: positions) {
         auto _addr = base + pos;
         if (i++ < 4) {
-            std::cout << "place pattern at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(_addr) << std::endl;
+//            std::cout << "place pattern at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(_addr) << std::endl;
         }
         strcpy(reinterpret_cast<char *>(_addr), pattern);
     }
