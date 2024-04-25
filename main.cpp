@@ -63,7 +63,7 @@ auto search_with_openmp(const uint8_t *p, size_t total_length, const char *patte
     auto pattern_len = strlen(pattern);
     std::generate(tasks.begin(), tasks.end(), [&, i = 0]() mutable {
         auto start = i == 0 ? 0 : (i * task_size - (pattern_len - 1));
-        auto real_size = i == task_size - 1 ? std::min(task_size, file_len - i * task_size) : task_size;
+        auto real_size = i == threads - 1 ? std::min(task_size, file_len - i * task_size) : task_size;
         real_size += pattern_len;
         i++;
         return Task(start, real_size);
@@ -153,6 +153,9 @@ auto check_print_result(const uint8_t *text, size_t text_len, const char *patter
                         const size_t expected_result_count) {
     auto checker = check_result_quickly(text, text_len, pattern, result);
 
+//    for (auto offset: result) {
+//        std::cout << "PATTERN found at offset 0x" << std::hex << text + offset << std::endl;
+//    }
     if (result.size() != expected_result_count) {
         std::cerr << "incorrect count of PATTERN:" << result.size() << std::endl;
         return false;
